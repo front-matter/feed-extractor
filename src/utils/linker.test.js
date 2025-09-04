@@ -1,5 +1,7 @@
 // linker.test
-/* eslint-env jest */
+
+import { describe, it } from 'node:test'
+import assert from 'node:assert'
 
 import { isValid, absolutify, purify } from './linker.js'
 
@@ -39,9 +41,9 @@ describe('test exported methods from `linker`', () => {
     },
   ]
   cases.forEach(({ url, expected }) => {
-    test(`isValid("${url}") must return "${expected}"`, () => {
+    it(`isValid("${url}") must return "${expected}"`, () => {
       const result = isValid(url)
-      expect(result).toEqual(expected)
+      assert.equal(result, expected)
     })
   })
 
@@ -77,16 +79,16 @@ describe('test exported methods from `linker`', () => {
   entries.forEach((entry) => {
     const {
       full,
-      relative,
+      relative = '',
       expected,
     } = entry
-    test(`absolutify("${full}", "${relative}") must become "${expected}"`, () => {
+    it(`absolutify("${full}", "${relative}") must become "${expected}"`, () => {
       const result = absolutify(full, relative)
-      expect(result).toEqual(expected)
+      assert.equal(result, expected)
     })
   })
 
-  test('test url purify() with invalid url', () => {
+  it('test url purify() with invalid url', () => {
     const urls = [
       null,
       '',
@@ -95,11 +97,11 @@ describe('test exported methods from `linker`', () => {
     ]
     urls.forEach((url) => {
       const result = purify(url)
-      expect(result).toEqual(null)
+      assert.equal(result, null)
     })
   })
 
-  test('test url purify() removing regular marketing params', () => {
+  it('test url purify() removing regular marketing params', () => {
     const entries = [
       {
         url: 'https://some.where/article/abc-xyz',
@@ -132,7 +134,7 @@ describe('test exported methods from `linker`', () => {
         expected,
       } = entry
       const result = purify(url)
-      expect(result).toEqual(expected)
+      assert.equal(result, expected)
     })
   })
 })

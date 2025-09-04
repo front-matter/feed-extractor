@@ -1,5 +1,7 @@
 // retrieve.test
-/* eslint-env jest */
+
+import { describe, it } from 'node:test'
+import assert from 'node:assert'
 
 import nock from 'nock'
 
@@ -14,45 +16,53 @@ const parseUrl = (url) => {
 }
 
 describe('test retrieve() method', () => {
-  test('test retrieve with bad status code', async () => {
+  it('test retrieve with bad status code', async () => {
     const url = 'https://some.where/bad/page'
     const { baseUrl, path } = parseUrl(url)
     nock(baseUrl).get(path).reply(500, 'Error 500')
-    expect(retrieve(url)).rejects.toThrow(new Error('Request failed with error code 500'))
+    try {
+      await retrieve(url)
+    } catch (err) {
+      assert.equal(err.message, 'Request failed with error code 500')
+    }
   })
 
-  test('test retrieve with bad conten type', async () => {
+  it('test retrieve with bad conten type', async () => {
     const url = 'https://some.where/bad/page'
     const { baseUrl, path } = parseUrl(url)
     nock(baseUrl).get(path).reply(200, '<?xml version="1.0"?><tag>this is xml</tag>', {
       'Content-Type': 'something/type',
     })
-    expect(retrieve(url)).rejects.toThrow(new Error('Invalid content type: something/type'))
+    try {
+      await retrieve(url)
+    } catch (err) {
+      assert.equal(err.message, 'Invalid content type: something/type')
+    }
   })
 
-  test('test retrieve from good source', async () => {
+  it('test retrieve from good source', async () => {
     const url = 'https://some.where/good/page'
     const { baseUrl, path } = parseUrl(url)
     nock(baseUrl).get(path).reply(200, '<div>this is content</div>', {
       'Content-Type': 'application/rss+xml',
     })
     const result = await retrieve(url)
-    expect(result.type).toEqual('xml')
-    expect(result.text).toEqual('<div>this is content</div>')
+    assert.equal(result.type, 'xml')
+    assert.equal(result.text, '<div>this is content</div>')
   })
 
-  test('test retrieve from good source, but having \\r\\n before/after root xml', async () => {
+  it('test retrieve from good source, but having \\r\\n before/after root xml', async () => {
     const url = 'https://some.where/good/page'
     const { baseUrl, path } = parseUrl(url)
     nock(baseUrl).get(path).reply(200, '\n\r\r\n\n<div>this is content</div>\n\r\r\n\n', {
       'Content-Type': 'text/xml',
     })
     const result = await retrieve(url)
-    expect(result.type).toEqual('xml')
-    expect(result.text).toBe('<div>this is content</div>')
+    assert.equal(result.type, 'xml')
+    assert.equal(result.text, '<div>this is content</div>')
   })
 
-  test('test retrieve using proxy', async () => {
+  it('test retrieve using proxy', async () => {
     const url = 'https://some.where/good/source-with-proxy'
     const { baseUrl, path } = parseUrl(url)
     nock(baseUrl).get(path).reply(200, 'something bad', {
@@ -69,8 +79,8 @@ describe('test retrieve() method', () => {
         target: 'https://proxy-server.com/api/proxy?url=',
       },
     })
-    expect(result.type).toEqual('xml')
-    expect(result.text).toEqual('<?xml version="1.0"?><tag>this is xml</tag>')
+    assert.equal(result.type, 'xml')
+    assert.equal(result.text, '<?xml version="1.0"?><tag>this is xml</tag>')
     nock.cleanAll()
   })
 })

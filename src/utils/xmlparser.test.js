@@ -1,41 +1,44 @@
 // xmlparser.test
-/* eslint-env jest */
 
+import { describe, it } from 'node:test'
+import assert from 'node:assert'
 import { readFileSync } from 'node:fs'
+
+import { isObject } from '@ndaidong/bellajs'
 
 import { validate, isRSS, isAtom, xml2obj } from './xmlparser.js'
 
 describe('test methods from `xmlparser`', () => {
-  test('test validate(well format xml)', async () => {
+  it('test validate(well format xml)', async () => {
     const xmlData = '<xml><atag id="12">value</atag></xml>'
     const result = validate(xmlData)
-    expect(result).toBe(true)
+    assert.ok(result)
   })
 
-  test('test validate(bad format xml)', async () => {
+  it('test validate(bad format xml)', async () => {
     const xmlData = '<xml><atag id="12">value</btag></xml>'
     const result = validate(xmlData)
-    expect(result).toBe(false)
+    assert.ok(!result)
   })
 
-  test('test validate(standard rss content)', async () => {
+  it('test validate(standard rss content)', async () => {
     const xml = readFileSync('test-data/rss-feed-standard.xml', 'utf8')
     const xmlData = xml2obj(xml)
-    expect(isRSS(xmlData)).toBe(true)
-    expect(isAtom(xmlData)).toBe(false)
+    assert.ok(isRSS(xmlData))
+    assert.ok(!isAtom(xmlData))
   })
 
-  test('test validate(standard atom content)', async () => {
+  it('test validate(standard atom content)', async () => {
     const xml = readFileSync('test-data/atom-feed-standard.xml', 'utf8')
     const xmlData = xml2obj(xml)
-    expect(isAtom(xmlData)).toBe(true)
-    expect(isRSS(xmlData)).toBe(false)
+    assert.ok(isAtom(xmlData))
+    assert.ok(!isRSS(xmlData))
   })
 
-  test('test xml2obj(well format xml)', async () => {
+  it('test xml2obj(well format xml)', async () => {
     const xmlData = '<xml><atag id="12">value</atag></xml>'
     const result = xml2obj(xmlData)
-    expect(result).toBeInstanceOf(Object)
-    expect(result.xml).toBeInstanceOf(Object)
+    assert.ok(isObject(result))
+    assert.ok(isObject(result.xml))
   })
 })
