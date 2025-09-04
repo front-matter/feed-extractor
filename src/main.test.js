@@ -1,6 +1,7 @@
 // main.test
-/* eslint-env jest */
 
+import { describe, it } from 'node:test'
+import assert from 'node:assert'
 import { readFileSync } from 'node:fs'
 
 import nock from 'nock'
@@ -39,48 +40,68 @@ const validateProps = (entry) => {
 }
 
 describe('test extract() function with common issues', () => {
-  test('extract feed from a non-string link', () => {
-    expect(extract([])).rejects.toThrow(new Error('Input param must be a valid URL'))
+  it('extract feed from a non-string link', async () => {
+    try {
+      await extract([])
+    } catch (err) {
+      assert.equal(err.message, 'Input param must be a valid URL')
+    }
   })
 
-  test('extract feed from a 404 link', () => {
+  it('extract feed from a 404 link', async () => {
     const url = 'https://somewhere.xyz/alpha/beta'
     const { baseUrl, path } = parseUrl(url)
     nock(baseUrl).get(path).reply(404)
-    expect(extract(url)).rejects.toThrow(new Error('Request failed with error code 404'))
+    try {
+      await extract(url)
+    } catch (err) {
+      assert.equal(err.message, 'Request failed with error code 404')
+    }
   })
 
-  test('extract feed from empty xml', () => {
+  it('extract feed from empty xml', async () => {
     const url = 'https://empty-source.elsewhere/rss'
     const { baseUrl, path } = parseUrl(url)
     nock(baseUrl).get(path).reply(200, '', {
       'Content-Type': 'application/xml',
     })
-    expect(extract(url)).rejects.toThrow(new Error(`Failed to load content from "${url}"`))
+    try {
+      await extract(url)
+    } catch (err) {
+      assert.equal(err.message, `Failed to load content from "${url}"`)
+    }
   })
 
-  test('extract feed from invalid xml', async () => {
+  it('extract feed from invalid xml', async () => {
     const url = 'https://averybad-source.elsewhere/rss'
     const xml = '<?xml version="1.0" encoding="UTF-8><noop><oops></ooops>'
     const { baseUrl, path } = parseUrl(url)
     nock(baseUrl).get(path).reply(200, xml, {
       'Content-Type': 'application/xml',
     })
-    expect(extract(url)).rejects.toThrow(new Error('The XML document is not well-formed'))
+    try {
+      await extract(url)
+    } catch (err) {
+      assert.equal(err.message, 'The XML document is not well-formed')
+    }
   })
 
-  test('extract feed from invalid json', async () => {
+  it('extract feed from invalid json', async () => {
     const url = 'https://averybad-source.elsewhere/jsonfeed'
     const { baseUrl, path } = parseUrl(url)
     nock(baseUrl).get(path).reply(200, 'this is not json string', {
       'Content-Type': 'application/json',
     })
-    expect(extract(url)).rejects.toThrow(new Error('Failed to convert data to JSON object'))
+    try {
+      await extract(url)
+    } catch (err) {
+      assert.equal(err.message, 'Failed to convert data to JSON object')
+    }
   })
 })
 
 describe('test extract() standard feed', () => {
-  test('extract rss feed from Google', async () => {
+  it('extract rss feed from Google', async () => {
     const url = 'https://some-news-page.tld/rss'
     const xml = readFileSync('test-data/rss-feed-standard-realworld.xml', 'utf8')
     const { baseUrl, path } = parseUrl(url)
@@ -89,15 +110,15 @@ describe('test extract() standard feed', () => {
     })
     const result = await extract(url)
     feedAttrs.forEach((k) => {
-      expect(hasProperty(result, k)).toBe(true)
+      assert.ok(hasProperty(result, k))
     })
     entryAttrs.forEach((k) => {
-      expect(hasProperty(result.entries[0], k)).toBe(true)
+      assert.ok(hasProperty(result.entries[0], k))
     })
-    expect(validateProps(result.entries[0])).toBe(true)
+    assert.ok(validateProps(result.entries[0]))
   })
 
-  test('extract atom feed from Google', async () => {
+  it('extract atom feed from Google', async () => {
     const url = 'https://some-news-page.tld/atom'
     const xml = readFileSync('test-data/atom-feed-standard-realworld.xml', 'utf8')
     const { baseUrl, path } = parseUrl(url)
@@ -106,15 +127,15 @@ describe('test extract() standard feed', () => {
     })
     const result = await extract(url)
     feedAttrs.forEach((k) => {
-      expect(hasProperty(result, k)).toBe(true)
+      assert.ok(hasProperty(result, k))
     })
     entryAttrs.forEach((k) => {
-      expect(hasProperty(result.entries[0], k)).toBe(true)
+      assert.ok(hasProperty(result.entries[0], k))
     })
-    expect(validateProps(result.entries[0])).toBe(true)
+    assert.ok(validateProps(result.entries[0]))
   })
 
-  test('extract atom feed from Google with extraFields', async () => {
+  it('extract atom feed from Google with extraFields', async () => {
     const url = 'https://some-news-page.tld/atom'
     const xml = readFileSync('test-data/atom-feed-standard-realworld.xml', 'utf8')
     const { baseUrl, path } = parseUrl(url)
@@ -133,12 +154,12 @@ describe('test extract() standard feed', () => {
         }
       },
     })
-    expect(hasProperty(result, 'author')).toBe(true)
-    expect(hasProperty(result.entries[0], 'id')).toBe(true)
-    expect(validateProps(result.entries[0])).toBe(true)
+    assert.ok(hasProperty(result, 'author'))
+    assert.ok(hasProperty(result.entries[0], 'id'))
+    assert.ok(validateProps(result.entries[0]))
   })
 
-  test('extract rdf feed from Slashdot with extraFields', async () => {
+  it('extract rdf feed from Slashdot with extraFields', async () => {
     const url = 'https://some-news-page.tld/atom'
     const xml = readFileSync('test-data/rdf-standard.xml', 'utf8')
     const { baseUrl, path } = parseUrl(url)
@@ -157,12 +178,12 @@ describe('test extract() standard feed', () => {
         }
       },
     })
-    expect(hasProperty(result, 'subject')).toBe(true)
-    expect(hasProperty(result.entries[0], 'author')).toBe(true)
-    expect(validateProps(result.entries[0])).toBe(true)
+    assert.ok(hasProperty(result, 'subject'))
+    assert.ok(hasProperty(result.entries[0], 'author'))
+    assert.ok(validateProps(result.entries[0]))
   })
 
-  test('extract atom feed which contains multi links', async () => {
+  it('extract atom feed which contains multi links', async () => {
     const url = 'https://some-news-page.tld/atom/multilinks'
     const xml = readFileSync('test-data/atom-multilinks.xml', 'utf8')
     const { baseUrl, path } = parseUrl(url)
@@ -171,15 +192,15 @@ describe('test extract() standard feed', () => {
     })
     const result = await extract(url)
     feedAttrs.forEach((k) => {
-      expect(hasProperty(result, k)).toBe(true)
+      assert.ok(hasProperty(result, k))
     })
     entryAttrs.forEach((k) => {
-      expect(hasProperty(result.entries[0], k)).toBe(true)
+      assert.ok(hasProperty(result.entries[0], k))
     })
-    expect(validateProps(result.entries[0])).toBe(true)
+    assert.ok(validateProps(result.entries[0]))
   })
 
-  test('extract json feed from Micro.blog', async () => {
+  it('extract json feed from Micro.blog', async () => {
     const url = 'https://some-news-page.tld/json'
     const json = readFileSync('test-data/json-feed-standard-realworld.json', 'utf8')
     const { baseUrl, path } = parseUrl(url)
@@ -188,15 +209,15 @@ describe('test extract() standard feed', () => {
     })
     const result = await extract(url)
     feedAttrs.forEach((k) => {
-      expect(hasProperty(result, k)).toBe(true)
+      assert.ok(hasProperty(result, k))
     })
     entryAttrs.forEach((k) => {
-      expect(hasProperty(result.entries[0], k)).toBe(true)
+      assert.ok(hasProperty(result.entries[0], k))
     })
-    expect(validateProps(result.entries[0])).toBe(true)
+    assert.ok(validateProps(result.entries[0]))
   })
 
-  test('extract json feed from Micro.blog with extra fields', async () => {
+  it('extract json feed from Micro.blog with extra fields', async () => {
     const url = 'https://some-news-page.tld/json'
     const json = readFileSync('test-data/json-feed-standard-realworld.json', 'utf8')
     const { baseUrl, path } = parseUrl(url)
@@ -215,12 +236,12 @@ describe('test extract() standard feed', () => {
         }
       },
     })
-    expect(hasProperty(result, 'icon')).toBe(true)
-    expect(hasProperty(result.entries[0], 'id')).toBe(true)
-    expect(validateProps(result.entries[0])).toBe(true)
+    assert.ok(hasProperty(result, 'icon'))
+    assert.ok(hasProperty(result.entries[0], 'id'))
+    assert.ok(validateProps(result.entries[0]))
   })
 
-  test('extract rss feed from huggingface.co (no link)', async () => {
+  it('extract rss feed from huggingface.co (no link)', async () => {
     const url = 'https://huggingface.co/no-link/rss'
     const xml = readFileSync('test-data/rss-feed-miss-link.xml', 'utf8')
     const { baseUrl, path } = parseUrl(url)
@@ -229,15 +250,15 @@ describe('test extract() standard feed', () => {
     })
     const result = await extract(url)
     feedAttrs.forEach((k) => {
-      expect(hasProperty(result, k)).toBe(true)
+      assert.ok(hasProperty(result, k))
     })
     entryAttrs.forEach((k) => {
-      expect(hasProperty(result.entries[0], k)).toBe(true)
+      assert.ok(hasProperty(result.entries[0], k))
     })
-    expect(validateProps(result.entries[0])).toBe(true)
+    assert.ok(validateProps(result.entries[0]))
   })
 
-  test('extract rss feed from medium.com (content:encoded)', async () => {
+  it('extract rss feed from medium.com (content:encoded)', async () => {
     const url = 'https://medium.com/feed/@ameliakusiak'
     const xml = readFileSync('test-data/medium-feed.xml', 'utf8')
     const { baseUrl, path } = parseUrl(url)
@@ -246,17 +267,17 @@ describe('test extract() standard feed', () => {
     })
     const result = await extract(url)
     feedAttrs.forEach((k) => {
-      expect(hasProperty(result, k)).toBe(true)
+      assert.ok(hasProperty(result, k))
     })
     entryAttrs.forEach((k) => {
-      expect(hasProperty(result.entries[0], k)).toBe(true)
+      assert.ok(hasProperty(result.entries[0], k))
     })
-    expect(validateProps(result.entries[0])).toBe(true)
+    assert.ok(validateProps(result.entries[0]))
   })
 })
 
 describe('test extract() with `useISODateFormat` option', () => {
-  test('set `useISODateFormat` to false', async () => {
+  it('set `useISODateFormat` to false', async () => {
     const url = 'https://realworld-standard-feed.tld/rss'
     const xml = readFileSync('test-data/rss-feed-standard-realworld.xml', 'utf8')
     const { baseUrl, path } = parseUrl(url)
@@ -266,11 +287,11 @@ describe('test extract() with `useISODateFormat` option', () => {
     const result = await extract(url, {
       useISODateFormat: false,
     })
-    expect(result.published).toEqual('Thu, 28 Jul 2022 03:39:57 GMT')
-    expect(result.entries[0].published).toEqual('Thu, 28 Jul 2022 02:43:00 GMT')
+    assert.equal(result.published, 'Thu, 28 Jul 2022 03:39:57 GMT')
+    assert.equal(result.entries[0].published, 'Thu, 28 Jul 2022 02:43:00 GMT')
   })
 
-  test('set `useISODateFormat` to true', async () => {
+  it('set `useISODateFormat` to true', async () => {
     const url = 'https://realworld-standard-feed.tld/rss'
     const xml = readFileSync('test-data/rss-feed-standard-realworld.xml', 'utf8')
     const { baseUrl, path } = parseUrl(url)
@@ -280,13 +301,13 @@ describe('test extract() with `useISODateFormat` option', () => {
     const result = await extract(url, {
       useISODateFormat: true,
     })
-    expect(result.published).toEqual('2022-07-28T03:39:57.000Z')
-    expect(result.entries[0].published).toEqual('2022-07-28T02:43:00.000Z')
+    assert.equal(result.published, '2022-07-28T03:39:57.000Z')
+    assert.equal(result.entries[0].published, '2022-07-28T02:43:00.000Z')
   })
 })
 
 describe('test extract() without normalization', () => {
-  test('extract rss feed from Google', async () => {
+  it('extract rss feed from Google', async () => {
     const url = 'https://some-news-page.tld/rss'
     const xml = readFileSync('test-data/rss-feed-standard-realworld.xml', 'utf8')
     const { baseUrl, path } = parseUrl(url)
@@ -296,11 +317,11 @@ describe('test extract() without normalization', () => {
     const result = await extract(url, {
       normalization: false,
     })
-    expect(hasProperty(result, 'webMaster')).toBe(true)
-    expect(hasProperty(result, 'item')).toBe(true)
-    expect(hasProperty(result.item[0], 'source')).toBe(true)
+    assert.ok(hasProperty(result, 'webMaster'))
+    assert.ok(hasProperty(result, 'item'))
+    assert.ok(hasProperty(result.item[0], 'source'))
   })
-  test('extract rss feed from standard example', async () => {
+  it('extract rss feed from standard example', async () => {
     const url = 'https://some-news-page.tld/rss'
     const xml = readFileSync('test-data/rss-feed-standard.xml', 'utf8')
     const { baseUrl, path } = parseUrl(url)
@@ -310,12 +331,12 @@ describe('test extract() without normalization', () => {
     const result = await extract(url, {
       normalization: false,
     })
-    expect(hasProperty(result, 'copyright')).toBe(true)
-    expect(hasProperty(result, 'item')).toBe(true)
-    expect(hasProperty(result.item, 'guid')).toBe(true)
+    assert.ok(hasProperty(result, 'copyright'))
+    assert.ok(hasProperty(result, 'item'))
+    assert.ok(hasProperty(result.item, 'guid'))
   })
 
-  test('extract rdf feed from Slashdot without normalization', async () => {
+  it('extract rdf feed from Slashdot without normalization', async () => {
     const url = 'https://some-news-page.tld/atom'
     const xml = readFileSync('test-data/rdf-standard.xml', 'utf8')
     const { baseUrl, path } = parseUrl(url)
@@ -325,13 +346,13 @@ describe('test extract() without normalization', () => {
     const result = await extract(url, {
       normalization: false,
     })
-    expect(hasProperty(result.channel, 'syn:updateBase')).toBe(true)
-    expect(hasProperty(result.channel, 'dc:rights')).toBe(true)
-    expect(hasProperty(result, 'item')).toBe(true)
-    expect(hasProperty(result.item[0], 'slash:department')).toBe(true)
+    assert.ok(hasProperty(result.channel, 'syn:updateBase'))
+    assert.ok(hasProperty(result.channel, 'dc:rights'))
+    assert.ok(hasProperty(result, 'item'))
+    assert.ok(hasProperty(result.item[0], 'slash:department'))
   })
 
-  test('extract atom feed from Google', async () => {
+  it('extract atom feed from Google', async () => {
     const url = 'https://some-news-page.tld/atom'
     const xml = readFileSync('test-data/atom-feed-standard-realworld.xml', 'utf8')
     const { baseUrl, path } = parseUrl(url)
@@ -341,13 +362,13 @@ describe('test extract() without normalization', () => {
     const result = await extract(url, {
       normalization: false,
     })
-    expect(hasProperty(result, 'id')).toBe(true)
-    expect(hasProperty(result, 'rights')).toBe(true)
-    expect(hasProperty(result, 'entry')).toBe(true)
-    expect(hasProperty(result.entry[0], 'updated')).toBe(true)
+    assert.ok(hasProperty(result, 'id'))
+    assert.ok(hasProperty(result, 'rights'))
+    assert.ok(hasProperty(result, 'entry'))
+    assert.ok(hasProperty(result.entry[0], 'updated'))
   })
 
-  test('extract atom feed from standard example', async () => {
+  it('extract atom feed from standard example', async () => {
     const url = 'https://some-news-page.tld/atom'
     const xml = readFileSync('test-data/atom-feed-standard.xml', 'utf8')
     const { baseUrl, path } = parseUrl(url)
@@ -357,15 +378,15 @@ describe('test extract() without normalization', () => {
     const result = await extract(url, {
       normalization: false,
     })
-    expect(hasProperty(result, 'id')).toBe(true)
-    expect(hasProperty(result, 'entry')).toBe(true)
-    expect(hasProperty(result.entry, 'published')).toBe(true)
-    expect(hasProperty(result.entry, 'updated')).toBe(true)
-    expect(hasProperty(result.entry, 'summary')).toBe(true)
-    expect(hasProperty(result.entry, 'content')).toBe(true)
+    assert.ok(hasProperty(result, 'id'))
+    assert.ok(hasProperty(result, 'entry'))
+    assert.ok(hasProperty(result.entry, 'published'))
+    assert.ok(hasProperty(result.entry, 'updated'))
+    assert.ok(hasProperty(result.entry, 'summary'))
+    assert.ok(hasProperty(result.entry, 'content'))
   })
 
-  test('extract json feed from Micro.blog', async () => {
+  it('extract json feed from Micro.blog', async () => {
     const url = 'https://some-news-page.tld/json'
     const json = readFileSync('test-data/json-feed-standard-realworld.json', 'utf8')
     const { baseUrl, path } = parseUrl(url)
@@ -375,14 +396,14 @@ describe('test extract() without normalization', () => {
     const result = await extract(url, {
       normalization: false,
     })
-    expect(hasProperty(result, 'icon')).toBe(true)
-    expect(hasProperty(result, 'favicon')).toBe(true)
-    expect(hasProperty(result, 'items')).toBe(true)
-    expect(hasProperty(result.items[0], 'tags')).toBe(true)
-    expect(hasProperty(result.items[0], 'date_published')).toBe(true)
+    assert.ok(hasProperty(result, 'icon'))
+    assert.ok(hasProperty(result, 'favicon'))
+    assert.ok(hasProperty(result, 'items'))
+    assert.ok(hasProperty(result.items[0], 'tags'))
+    assert.ok(hasProperty(result.items[0], 'date_published'))
   })
 
-  test('extract rss podcast feed with enclosure tag', async () => {
+  it('extract rss podcast feed with enclosure tag', async () => {
     const url = 'https://some-podcast-page.tld/podcast/rss'
     const xml = readFileSync('test-data/podcast.rss', 'utf8')
     const { baseUrl, path } = parseUrl(url)
@@ -392,67 +413,67 @@ describe('test extract() without normalization', () => {
     const result = await extract(url, {
       normalization: false,
     })
-    expect(hasProperty(result, 'itunes:owner')).toBe(true)
-    expect(hasProperty(result.item[0], 'itunes:duration')).toBe(true)
+    assert.ok(hasProperty(result, 'itunes:owner'))
+    assert.ok(hasProperty(result.item[0], 'itunes:duration'))
   })
 })
 
 describe('test extract with `baseUrl` option', () => {
-  test('extract rss feed from file', () => {
+  it('extract rss feed from file', () => {
     const baseUrl = 'https://huggingface.co'
     const xml = readFileSync('test-data/rss-feed-miss-base-url.xml', 'utf8')
     const result = extractFromXml(xml, { baseUrl })
 
     feedAttrs.forEach((k) => {
-      expect(hasProperty(result, k)).toBe(true)
+      assert.ok(hasProperty(result, k))
     })
 
     entryAttrs.forEach((k) => {
-      expect(hasProperty(result.entries[0], k)).toBe(true)
+      assert.ok(hasProperty(result.entries[0], k))
     })
 
-    expect(validateProps(result.entries[0])).toBe(true)
-    expect(result.link).toBe(baseUrl + '/blog')
-    expect(result.entries[0].link).toBe(baseUrl + '/blog/intro-graphml')
+    assert.ok(validateProps(result.entries[0]))
+    assert.equal(result.link, baseUrl + '/blog')
+    assert.equal(result.entries[0].link, baseUrl + '/blog/intro-graphml')
   })
 
-  test('extract rdf feed from file', () => {
+  it('extract rdf feed from file', () => {
     const baseUrl = 'https://slashdot.org'
     const xml = readFileSync('test-data/rdf-standard.xml', 'utf8')
     const result = extractFromXml(xml, { baseUrl })
 
     feedAttrs.forEach((k) => {
-      expect(hasProperty(result, k)).toBe(true)
+      assert.ok(hasProperty(result, k))
     })
 
     entryAttrs.forEach((k) => {
-      expect(hasProperty(result.entries[0], k)).toBe(true)
+      assert.ok(hasProperty(result.entries[0], k))
     })
 
-    expect(validateProps(result.entries[0])).toBe(true)
-    expect(result.link).toBe(baseUrl + '/')
+    assert.ok(validateProps(result.entries[0]))
+    assert.equal(result.link, baseUrl + '/')
     const firstItemLink = result.entries[0].link
-    expect(firstItemLink.startsWith('https://tech.slashdot.org/story/23/08/23/2238246/spacex-')).toBe(true)
+    assert.ok(firstItemLink.startsWith('https://tech.slashdot.org/story/23/08/23/2238246/spacex-'))
   })
 
-  test('extract json feed from file', () => {
+  it('extract json feed from file', () => {
     const baseUrl = 'https://www.jsonfeed.org'
     const json = readFileSync('test-data/json-feed-miss-base-url.json', 'utf8')
     const result = extractFromJson(JSON.parse(json), { baseUrl })
 
     feedAttrs.forEach((k) => {
-      expect(hasProperty(result, k)).toBe(true)
+      assert.ok(hasProperty(result, k))
     })
 
     entryAttrs.forEach((k) => {
-      expect(hasProperty(result.entries[0], k)).toBe(true)
+      assert.ok(hasProperty(result.entries[0], k))
     })
 
-    expect(result.link).toBe(baseUrl + '/')
-    expect(result.entries[0].link).toBe(baseUrl + '/2020/08/07/json-feed-version.html')
+    assert.equal(result.link, baseUrl + '/')
+    assert.equal(result.entries[0].link, baseUrl + '/2020/08/07/json-feed-version.html')
   })
 
-  test('extract rss feed with url', async () => {
+  it('extract rss feed with url', async () => {
     const url = 'https://huggingface.co/blog/rss'
     const xml = readFileSync('test-data/rss-feed-miss-base-url.xml', 'utf8')
     const { baseUrl, path } = parseUrl(url)
@@ -462,34 +483,34 @@ describe('test extract with `baseUrl` option', () => {
     const result = await extract(url, { baseUrl })
 
     feedAttrs.forEach((k) => {
-      expect(hasProperty(result, k)).toBe(true)
+      assert.ok(hasProperty(result, k))
     })
 
     entryAttrs.forEach((k) => {
-      expect(hasProperty(result.entries[0], k)).toBe(true)
+      assert.ok(hasProperty(result.entries[0], k))
     })
 
-    expect(validateProps(result.entries[0])).toBe(true)
-    expect(result.link).toBe(baseUrl + '/blog')
-    expect(result.entries[0].link).toBe(baseUrl + '/blog/intro-graphml')
+    assert.ok(validateProps(result.entries[0]))
+    assert.equal(result.link, baseUrl + '/blog')
+    assert.equal(result.entries[0].link, baseUrl + '/blog/intro-graphml')
   })
 })
 
 if (PROXY_SERVER !== '') {
   describe('test extract live RSS via proxy server', () => {
-    test('check if extract method works with proxy server', async () => {
+    it('check if extract method works with proxy server', async () => {
       const url = 'https://news.google.com/rss'
       const result = await extract(url, {}, {
         agent: new HttpsProxyAgent(PROXY_SERVER),
       })
-      expect(result.title).toContain('Google News')
-      expect(result.entries.length).toBeGreaterThan(0)
+      assert.ok(result.title.includes('Google News'))
+      assert.ok(result.entries.length > 0)
     }, 10000)
   })
 }
 
 describe('check old method read()', () => {
-  test('ensure that depricated method read() still works', async () => {
+  it('ensure that depricated method read() still works', async () => {
     const url = 'https://realworld-standard-feed.tld/rss'
     const xml = readFileSync('test-data/rss-feed-standard-realworld.xml', 'utf8')
     const { baseUrl, path } = parseUrl(url)
@@ -499,7 +520,7 @@ describe('check old method read()', () => {
     const result = await read(url, {
       useISODateFormat: true,
     })
-    expect(result.published).toEqual('2022-07-28T03:39:57.000Z')
-    expect(result.entries[0].published).toEqual('2022-07-28T02:43:00.000Z')
+    assert.equal(result.published, '2022-07-28T03:39:57.000Z')
+    assert.equal(result.entries[0].published, '2022-07-28T02:43:00.000Z')
   })
 })
